@@ -492,5 +492,11 @@
  "The colour unexplored areas are darkened with.": "A cor usada para escurecer as áreas inexploradas.",
  "Default colour": "Cor padrão",
  "dungeon and cave maps in every language (they showed green on some languages' clients)": "mapas de masmorras e cavernas em todos os idiomas (apareciam verdes nos clientes de alguns idiomas)",
- "the map's hitches while panning, found and measured with /openmap bench": "os travamentos do mapa ao arrastá-lo, encontrados e medidos com /openmap bench"
+ "the map's hitches while panning, found and measured with /openmap bench": "os travamentos do mapa ao arrastá-lo, encontrados e medidos com /openmap bench",
+ "Follow new pins": "Seguir marcadores novos",
+ "A pin you drop becomes the waypoint, which other addons route to (Shortest Path Forever). Off, the waypoint is left as it is: the pin's Follow sets it.": "Um marcador que você coloca vira o ponto de rota, para o qual outros addons traçam a rota (Shortest Path Forever). Desativado, o ponto de rota fica como está: Seguir no marcador o define.",
+ "Send new pins to group": "Enviar marcadores ao grupo",
+ "A pin you drop goes to your party or raid once its card is closed (those with OpenMap are asked whether to add it).": "Um marcador que você coloca vai para o seu grupo ou raide quando a ficha dele é fechada (quem tem o OpenMap escolhe se quer adicioná-lo).",
+ "Auto-add group's pins": "Adicionar marcadores do grupo",
+ "Map pins your party or raid shares with you are added at once, without asking.": "Marcadores de mapa que o seu grupo ou raide compartilha com você são adicionados na hora, sem perguntar."
 }

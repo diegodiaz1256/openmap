@@ -492,5 +492,11 @@
  "The colour unexplored areas are darkened with.": "Цвет, которым затемняются неисследованные области.",
  "Default colour": "Цвет по умолчанию",
  "dungeon and cave maps in every language (they showed green on some languages' clients)": "карты подземелий и пещер на всех языках (в клиентах на некоторых языках они были зелёными)",
- "the map's hitches while panning, found and measured with /openmap bench": "подтормаживания карты при прокрутке, найденные и измеренные с помощью /openmap bench"
+ "the map's hitches while panning, found and measured with /openmap bench": "подтормаживания карты при прокрутке, найденные и измеренные с помощью /openmap bench",
+ "Follow new pins": "Отслеживать новые метки",
+ "A pin you drop becomes the waypoint, which other addons route to (Shortest Path Forever). Off, the waypoint is left as it is: the pin's Follow sets it.": "Поставленная метка становится путевой точкой, к которой другие аддоны прокладывают маршрут (Shortest Path Forever). Если выключено, путевая точка не меняется: её ставит кнопка «Отслеживать» у метки.",
+ "Send new pins to group": "Отправлять метки группе",
+ "A pin you drop goes to your party or raid once its card is closed (those with OpenMap are asked whether to add it).": "Поставленная метка отправляется вашей группе или рейду, когда закрывается её карточка (тем, у кого есть OpenMap, будет предложено добавить метку).",
+ "Auto-add group's pins": "Метки группы без вопроса",
+ "Map pins your party or raid shares with you are added at once, without asking.": "Метки на карте, которыми с вами делится группа или рейд, добавляются сразу, без вопроса."
 }

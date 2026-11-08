@@ -492,5 +492,11 @@
  "The colour unexplored areas are darkened with.": "Die Farbe, mit der unerforschte Gebiete abgedunkelt werden.",
  "Default colour": "Standardfarbe",
  "dungeon and cave maps in every language (they showed green on some languages' clients)": "Dungeon- und Höhlenkarten in jeder Sprache (auf den Clients mancher Sprachen waren sie grün)",
- "the map's hitches while panning, found and measured with /openmap bench": "die Ruckler der Karte beim Verschieben, gefunden und gemessen mit /openmap bench"
+ "the map's hitches while panning, found and measured with /openmap bench": "die Ruckler der Karte beim Verschieben, gefunden und gemessen mit /openmap bench",
+ "Follow new pins": "Neue Markierung verfolgen",
+ "A pin you drop becomes the waypoint, which other addons route to (Shortest Path Forever). Off, the waypoint is left as it is: the pin's Follow sets it.": "Eine gesetzte Markierung wird zum Wegpunkt, zu dem andere Addons eine Route zeigen (Shortest Path Forever). Aus: Der Wegpunkt bleibt, wie er ist; Verfolgen auf der Markierung setzt ihn.",
+ "Send new pins to group": "Neue an Gruppe senden",
+ "A pin you drop goes to your party or raid once its card is closed (those with OpenMap are asked whether to add it).": "Eine gesetzte Markierung geht an Eure Gruppe oder Euren Schlachtzug, sobald ihre Karte geschlossen wird (wer OpenMap hat, wird gefragt, ob er sie hinzufügen möchte).",
+ "Auto-add group's pins": "Gruppe: ohne Nachfrage",
+ "Map pins your party or raid shares with you are added at once, without asking.": "Kartenmarkierungen, die Eure Gruppe oder Euer Schlachtzug mit Euch teilt, werden sofort hinzugefügt, ohne Nachfrage."
 }

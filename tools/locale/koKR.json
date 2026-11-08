@@ -492,5 +492,11 @@
  "The colour unexplored areas are darkened with.": "탐험하지 않은 지역을 어둡게 할 때 쓰는 색상입니다.",
  "Default colour": "기본 색상",
  "dungeon and cave maps in every language (they showed green on some languages' clients)": "모든 언어에서 던전과 동굴 지도 표시 (일부 언어 클라이언트에서 녹색으로 보이던 문제)",
- "the map's hitches while panning, found and measured with /openmap bench": "지도를 이동할 때 끊기는 문제, /openmap bench 명령으로 찾아내고 측정"
+ "the map's hitches while panning, found and measured with /openmap bench": "지도를 이동할 때 끊기는 문제, /openmap bench 명령으로 찾아내고 측정",
+ "Follow new pins": "새 핀 추적",
+ "A pin you drop becomes the waypoint, which other addons route to (Shortest Path Forever). Off, the waypoint is left as it is: the pin's Follow sets it.": "꽂은 핀이 이동 지점이 되어 다른 애드온이 그곳까지 경로를 안내합니다 (Shortest Path Forever). 끄면 이동 지점은 그대로이며, 핀의 추적 버튼으로 설정합니다.",
+ "Send new pins to group": "새 핀을 파티에 공유",
+ "A pin you drop goes to your party or raid once its card is closed (those with OpenMap are asked whether to add it).": "꽂은 핀은 카드를 닫을 때 파티 또는 공격대에 공유됩니다 (OpenMap 사용자에게는 추가할지 묻습니다).",
+ "Auto-add group's pins": "파티 핀 바로 추가",
+ "Map pins your party or raid shares with you are added at once, without asking.": "파티 또는 공격대가 공유한 지도 핀을 묻지 않고 바로 추가합니다."
 }

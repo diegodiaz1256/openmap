@@ -492,5 +492,11 @@
  "The colour unexplored areas are darkened with.": "未探索區域變暗時使用的顏色。",
  "Default colour": "預設顏色",
  "dungeon and cave maps in every language (they showed green on some languages' clients)": "所有語言下的地城和洞穴地圖（部分語言的用戶端上曾顯示為綠色）",
- "the map's hitches while panning, found and measured with /openmap bench": "拖曳地圖時的卡頓，用 /openmap bench 找出並測量"
+ "the map's hitches while panning, found and measured with /openmap bench": "拖曳地圖時的卡頓，用 /openmap bench 找出並測量",
+ "Follow new pins": "追蹤新放置的標記",
+ "A pin you drop becomes the waypoint, which other addons route to (Shortest Path Forever). Off, the waypoint is left as it is: the pin's Follow sets it.": "放置的標記會成為路徑點，其他插件會為它規劃路線（Shortest Path Forever）。關閉時路徑點維持不變：在標記上點「追蹤」即可設定。",
+ "Send new pins to group": "新標記傳送給隊伍",
+ "A pin you drop goes to your party or raid once its card is closed (those with OpenMap are asked whether to add it).": "放置的標記會在關閉其卡片時傳送給你的隊伍或團隊（有 OpenMap 的人會被詢問是否加入）。",
+ "Auto-add group's pins": "自動加入隊伍的標記",
+ "Map pins your party or raid shares with you are added at once, without asking.": "你的隊伍或團隊與你分享的地圖標記會立即加入，不再詢問。"
 }
