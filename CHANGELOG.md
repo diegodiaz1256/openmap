@@ -1,5 +1,15 @@
 # OpenMap changelog
 
+## Unreleased
+
+### New
+
+- **Pin options** (OpenMap's options, Moving about and Sharing):
+  - **Follow new pins**: on by default, as before. Off, a pin you drop doesn't become the waypoint,
+    so addons that route to it (Shortest Path Forever) are left alone; the pin's Follow still sets it.
+  - **Send new pins to group**: a pin you drop goes to your party or raid once its card is closed.
+  - **Auto-add group's pins**: pins your party or raid shares are added without asking.
+
 ## v0.8.2 (2026-11-08)
 
 ### Improved
