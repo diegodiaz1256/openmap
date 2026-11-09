@@ -20,6 +20,7 @@ d.zoneLevels = true
 d.moveFade = 0                  -- how much the map fades while you move (0 to 0.9)
 d.mapFpsCap = 0                 -- the frame rate at most while the map shows (the game's maxFPS, held then; 0: off)
 d.zoomHidePins = true           -- other addons' icons (Questie's ...) hidden while the map zooms
+d.moveHideIcons = false         -- OpenMap's icons and other addons' hidden while the map pans or zooms
 
 local map, sc, bar
 local labelProvider                     -- Blizzard's area label
@@ -448,6 +449,33 @@ local function OnZoomStep()
 		end
 	end
 	zoomWatch:Show()
+end
+
+-- the map moving (a drag or a zoom: Stitch.lua's names.Hush, on its third frame running, off once it's still):
+-- with Hide icons while moving the map, OpenMap's icons and other addons' rest, all of them, for as long as it
+-- moves. Each icon on screen is moved again on every frame of a pan; hidden, it isn't. Only a pin hidden here
+-- is shown again here: one its addon hid meanwhile stays so
+local moveHid = {}
+S.OnHush = function(on)
+	if on and (not mod.db.moveHideIcons or not mod.IsStitched() or not map:IsShown()) then return end
+	S.RestIcons(on)
+	if on then
+		for template in pairs(pinTemplates) do
+			for pin in map:EnumeratePinsByTemplate(template) do
+				if pin:IsShown() then
+					moveHid[pin] = true
+					pin:Hide()
+				end
+			end
+		end
+		return
+	end
+	for template in pairs(pinTemplates) do
+		for pin in map:EnumeratePinsByTemplate(template) do
+			if moveHid[pin] then pin:SetAlpha(1) pin:Show() end
+		end
+	end
+	wipe(moveHid)
 end
 
 local questie = { placed = 0, ours = 0, moved = 0 }   -- for /openmap status: since the map last changed
@@ -987,6 +1015,9 @@ function mod:ExtraOptions(opts, get, set, off)
 	opts.zoomHidePins = { type = "toggle", name = ns.L["Other addons' icons rest while zooming"], order = 43, width = "full",
 		get = get, set = set, disabled = off,
 		desc = ns.L["Questie's icons (and other addons' map icons) are hidden while the map zooms and back as soon as it stops. Each one is laid out again on every frame of a zoom, and with Questie's hundreds that costs a lot of frame rate."] }
+	opts.moveHideIcons = { type = "toggle", name = ns.L["Hide icons while moving the map"], order = 43.2, width = "full",
+		get = get, set = set, disabled = off,
+		desc = ns.L["OpenMap's icons and other addons' (Questie's ...) are hidden while you drag or zoom the map, and come back as soon as it stops. Your waypoint and party stay. Every icon on screen is moved again on each frame the map moves: on a slower computer this keeps it smoother."] }
 	opts.mapFpsCap = { type = "range", name = ns.L["Map frame rate cap"], order = 44.5, min = 0, max = 144, step = 6,
 		get = get, set = setApply, disabled = off,
 		desc = ns.L["The frame rate at most while the map is open (0: off). A big map draws many layers over the whole screen every frame; 60 halves the graphics card's work at 120 fps, for a smooth enough map. The game's own frame rate setting comes back as the map closes."] }

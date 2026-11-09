@@ -492,5 +492,7 @@
  "The colour unexplored areas are darkened with.": "未探索區域變暗時使用的顏色。",
  "Default colour": "預設顏色",
  "dungeon and cave maps in every language (they showed green on some languages' clients)": "所有語言下的地城和洞穴地圖（部分語言的用戶端上曾顯示為綠色）",
- "the map's hitches while panning, found and measured with /openmap bench": "拖曳地圖時的卡頓，用 /openmap bench 找出並測量"
+ "the map's hitches while panning, found and measured with /openmap bench": "拖曳地圖時的卡頓，用 /openmap bench 找出並測量",
+ "Hide icons while moving the map": "移動地圖時隱藏圖示",
+ "OpenMap's icons and other addons' (Questie's ...) are hidden while you drag or zoom the map, and come back as soon as it stops. Your waypoint and party stay. Every icon on screen is moved again on each frame the map moves: on a slower computer this keeps it smoother.": "拖曳或縮放地圖時，隱藏OpenMap的圖示和其他插件（Questie等）的圖示，地圖一停下就立即恢復。你的導航點和隊伍仍會顯示。地圖移動的每一幀都要重新放置畫面上的每個圖示：在較慢的電腦上，這樣會更流暢。"
 }

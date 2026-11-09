@@ -492,5 +492,7 @@
  "The colour unexplored areas are darkened with.": "La couleur utilisée pour assombrir les zones inexplorées.",
  "Default colour": "Couleur par défaut",
  "dungeon and cave maps in every language (they showed green on some languages' clients)": "les cartes des donjons et des grottes dans toutes les langues (elles étaient vertes sur les clients de certaines langues)",
- "the map's hitches while panning, found and measured with /openmap bench": "les saccades de la carte pendant le défilement, trouvées et mesurées avec /openmap bench"
+ "the map's hitches while panning, found and measured with /openmap bench": "les saccades de la carte pendant le défilement, trouvées et mesurées avec /openmap bench",
+ "Hide icons while moving the map": "Masquer les icônes en déplaçant la carte",
+ "OpenMap's icons and other addons' (Questie's ...) are hidden while you drag or zoom the map, and come back as soon as it stops. Your waypoint and party stay. Every icon on screen is moved again on each frame the map moves: on a slower computer this keeps it smoother.": "Les icônes d'OpenMap et celles des autres addons (Questie...) sont masquées pendant que vous faites glisser ou zoomez la carte, et reviennent dès qu'elle s'arrête. Votre point de passage et votre groupe restent. Chaque icône à l'écran est redéplacée à chaque image où la carte bouge : sur un ordinateur plus lent, elle reste ainsi plus fluide."
 }

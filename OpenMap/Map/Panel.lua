@@ -227,6 +227,8 @@ local function Rows()
 	-- (it was only in Options, which the menu stands in for: players couldn't find it)
 	rows[#rows + 1] = optRow(L["Fade icons while zooming"], "zoomHidePins", Icon("Ability_Stealth"))
 	rows[#rows].note = L["Improves performance"]      -- (a second line, so nobody turns it off unaware)
+	rows[#rows + 1] = optRow(L["Hide icons while moving the map"], "moveHideIcons", Icon("Ability_Rogue_Disguise"))
+	rows[#rows].note = L["Improves performance"]
 	rows[#rows + 1] = { L["Dungeons"] }
 	rows[#rows + 1] = optRow(L["Level ranges"], "dungeonLevels", Icon("Spell_ChargePositive"))
 	rows[#rows + 1] = optRow(L["Dungeon bosses"], "dungeonBosses", Icon("INV_Misc_Bone_ElfSkull_01"))

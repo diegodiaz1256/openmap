@@ -905,6 +905,8 @@ end
 -- from: nil, each from its own zoom (Auto); else that zoom, further out or further in than its own.
 -- (Townsfolk are never shown further out than their own: there are thousands of them)
 local places = { from = nil, sets = { dungeons = true, boats = true, zeppelins = true, flight = true } }
+-- resting: the icons hidden while the map moves (S.RestIcons), all but these (you, your way, your group)
+places.keep = { waypoint = true, ping = true, group = true, sketchLive = true }
 
 local function ShowSets()
 	for key, set in pairs(sets) do
@@ -913,6 +915,7 @@ local function ShowSets()
 		if places.from and (places.sets[key] or folk) then from = folk and math.max(from, places.from) or places.from end
 		-- (further out than the whole world, on the sea chart: as at the whole world)
 		local shown = set.on and math.max(zoomNow, 1) >= from and (not set.maxZoom or zoomNow < set.maxZoom)
+			and not (places.resting and not places.keep[key])
 		if shown and set.build then
 			local build = set.build
 			set.build = nil
@@ -923,6 +926,13 @@ local function ShowSets()
 end
 
 function S.GetPinSet(key) return sets[key] end
+-- OpenMap's icons hidden while the map moves, and back (Extras.lua's S.OnHush: the menu's Hide icons while
+-- moving the map)
+function S.RestIcons(on)
+	if places.resting == on then return end
+	places.resting = on
+	ShowSets()
+end
 
 -- the menu's Icon size: every icon of OpenMap's at this times its own size (each about its own
 -- middle: it's anchored there)
@@ -1345,6 +1355,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 			end
 		end
 		names.watch:SetShown(on)
+		if S.OnHush then S.OnHush(on) end   -- (the icons too, where that's on: Extras.lua)
 	end
 	names.watch = CreateFrame("Frame")
 	names.watch:Hide()

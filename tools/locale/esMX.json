@@ -492,5 +492,7 @@
  "The colour unexplored areas are darkened with.": "El color con el que se oscurecen las áreas sin explorar.",
  "Default colour": "Color predeterminado",
  "dungeon and cave maps in every language (they showed green on some languages' clients)": "mapas de calabozos y cuevas en todos los idiomas (se veían verdes en los clientes de algunos idiomas)",
- "the map's hitches while panning, found and measured with /openmap bench": "los tirones del mapa al desplazarlo, encontrados y medidos con /openmap bench"
+ "the map's hitches while panning, found and measured with /openmap bench": "los tirones del mapa al desplazarlo, encontrados y medidos con /openmap bench",
+ "Hide icons while moving the map": "Ocultar íconos al mover el mapa",
+ "OpenMap's icons and other addons' (Questie's ...) are hidden while you drag or zoom the map, and come back as soon as it stops. Your waypoint and party stay. Every icon on screen is moved again on each frame the map moves: on a slower computer this keeps it smoother.": "Los íconos de OpenMap y los de otros addons (Questie...) se ocultan mientras arrastras o haces zoom en el mapa, y vuelven en cuanto se detiene. Tu punto de ruta y tu grupo se quedan. Cada ícono en pantalla se vuelve a mover en cada cuadro en que el mapa se mueve: en una computadora más lenta, así va más fluido."
 }
