@@ -188,26 +188,52 @@ local function LODPiece(layer, cont, sub)
 end
 
 -- one copy's pieces over the tiles tx0 .. tx1, ty0 .. ty1, at `alpha`
+-- a stretch of the world (normalized) hidden all over as unexplored land (S.HiddenAt at nine points): no
+-- minimap drawn there, as the blank art over it would hide it anyway (drawn and then covered, it cost
+-- twice over the land you haven't been to). Asked again once the hide changes (S.hiddenStamp)
+local hiddenSeen, hiddenStamp = { {}, {} }, nil
+local function AllHidden(which, key, u0, v0, u1, v1)
+	if not S.HiddenAt then return false end
+	if hiddenStamp ~= S.hiddenStamp then
+		wipe(hiddenSeen[1]); wipe(hiddenSeen[2])
+		hiddenStamp = S.hiddenStamp
+	end
+	local seen = hiddenSeen[which]
+	local h = seen[key]
+	if h == nil then
+		h = true
+		for i = 0, 2 do
+			for j = 0, 2 do
+				if h and not S.HiddenAt(u0 + (u1 - u0) * (0.1 + 0.4 * i), v0 + (v1 - v0) * (0.1 + 0.4 * j)) then h = false end
+			end
+		end
+		seen[key] = h
+	end
+	return h
+end
+
 local function ShowLOD(layer, cont, level, per, keys, tx0, tx1, ty0, ty1, alpha)
 	local set = LODSet(cont, level, keys)
 	for col = math.floor(tx0 / per), math.floor(tx1 / per) do
 		for row = math.floor(ty0 / per), math.floor(ty1 / per) do
+			local key = ((cont * 2 + level) * 64 + col) * 64 + row
+			local u0, v0, u1, v1
 			if set[col * 64 + row] then
-				local key = ((cont * 2 + level) * 64 + col) * 64 + row
+				u0, v0 = S.FromYards(cont, (32 - row * per) * TILE, (32 - col * per) * TILE)
+				u1, v1 = S.FromYards(cont, (32 - (row + 1) * per) * TILE, (32 - (col + 1) * per) * TILE)
+			end
+			-- (none for a piece off the stitched world: Outland's, on 530)
+			if u0 and u1 and not AllHidden(2, key, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1)) then
 				wantedLOD[key] = true
 				local t = lodPieces[key]
 				if not t then
-					local u0, v0 = S.FromYards(cont, (32 - row * per) * TILE, (32 - col * per) * TILE)
-					local u1, v1 = S.FromYards(cont, (32 - (row + 1) * per) * TILE, (32 - (col + 1) * per) * TILE)
-					if u0 and u1 then           -- (none for a piece off the stitched world: Outland's, on 530)
-						t = LODPiece(layer, cont, -level)
-						t:SetTexture(LOD .. cont .. "_" .. per .. "_" .. col .. "_" .. row, nil, nil, "LINEAR")
-						lodPieces[key] = t
-						S.PlaceWorld(t, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1))
-						t:Show()
-					end
+					t = LODPiece(layer, cont, -level)
+					t:SetTexture(LOD .. cont .. "_" .. per .. "_" .. col .. "_" .. row, nil, nil, "LINEAR")
+					lodPieces[key] = t
+					S.PlaceWorld(t, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1))
+					t:Show()
 				end
-				if t then t:SetAlpha(alpha) end
+				t:SetAlpha(alpha)
 			end
 		end
 	end
@@ -246,10 +272,13 @@ local function UpdateMinimap(layer, conts, u, v, hu, hv, mix)
 					for ty = ty0, ty1 do
 						local fid = list[tx * 64 + ty]
 						local u0, v0, u1, v1
-						if fid and not tiles[TileKey(cont, tx, ty)] then
+						if fid then
 							u0, v0 = S.FromYards(cont, (32 - ty) * TILE, (32 - tx) * TILE)
 							u1, v1 = S.FromYards(cont, (31 - ty) * TILE, (31 - tx) * TILE)
 							if not (u0 and u1) then fid = nil end     -- (a tile off the stitched world)
+						end
+						if fid and AllHidden(1, TileKey(cont, tx, ty), math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1)) then
+							fid = nil
 						end
 						if fid then
 							local key = TileKey(cont, tx, ty)

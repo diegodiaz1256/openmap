@@ -1863,9 +1863,25 @@ function S.SetZoom(zoom, scale)
 	end
 	ApplyDetail()
 	Step("zone detail")
+	-- (an underground city you're in: its own map whole from four times further out, where its fade began. Half
+	-- faded in, it and the ruins over it read as one, and nothing in it could be found)
+	-- (the game's zone name as well: its best map for you there can be the zone over it)
+	local here = ns.Safe.Call(C_Map.GetBestMapForUnit, "player")
+	local zone = GetRealZoneText and ns.Safe.Call(GetRealZoneText)
 	for _, c in ipairs(cities) do
 		local fade = CITY_FADE_OF[c.mapID] or CITY_FADE
-		local a = Smooth(fade[1] * c[2], fade[2] * c[2])
+		local from, to = fade[1] * c[2], fade[2] * c[2]
+		if UNDERGROUND_CITIES[c.mapID] then
+			if c.name == nil then
+				local info = C_Map.GetMapInfo(c.mapID)
+				c.name = info and info.name or false
+			end
+			-- (in it to the game: not the ruins above it, indoors as they are; there, coming in, its map
+			-- took over the zone's, minimap and all, from far out)
+			local inside = here == c.mapID or (zone and zone == c.name)
+			if inside then from, to = from / 4, from end
+		end
+		local a = Smooth(from, to)
 		-- (shown near the view, S.Cull, while it's faded in at all: at alpha 0 its textures still cost their
 		-- size to draw, and a retail city is 150 of them)
 		if c.alpha ~= a then
@@ -2554,32 +2570,63 @@ function Shade.Hide.Rects(mapID)
 	return out, count
 end
 
--- a zone's blank art over its hidden rectangles, drawn as its base art is (PlaceBase: on its territory,
--- its colour-matched copy through its border band too)
+-- where a piece's art paints, tile by tile (its own px, 256 a tile): { x0, y0, x1, y1 } or false (nowhere);
+-- nil: not known (ns.MapRevealBounds, tools/map-data/reveal_holes.py)
+-- (in Shade's table: the file is at Lua's limit of 200 locals)
+Shade.Hide.boundsOf = {}
+function Shade.Hide.Bounds(art, key)
+	local list = Shade.Hide.boundsOf[art .. "/" .. key]
+	if list == nil then
+		local s = ns.MapRevealBounds and ns.MapRevealBounds[art] and ns.MapRevealBounds[art][key]
+		list = false
+		if s then
+			list = {}
+			for box in string.gmatch(s, "[^,]+") do
+				local x0, y0, x1, y1 = string.match(box, "(%d+) (%d+) (%d+) (%d+)")
+				list[#list + 1] = x0 and { tonumber(x0), tonumber(y0), tonumber(x1), tonumber(y1) } or false
+			end
+		end
+		Shade.Hide.boundsOf[art .. "/" .. key] = list
+	end
+	return list or nil
+end
+
+-- a zone's blank art over its unexplored pieces, as the game's map shows it: each piece in its own shape
+-- (its overlay art as a mask), through the holes of the explored pieces over it, its own zone's or a
+-- neighbour's (MapRevealHole: each piece's alpha inside out, tools/map-data/reveal_holes.py), so it
+-- shows only where none of them paints, soft-edged. (Its rectangle hid land it doesn't paint; cut out
+-- by the explored pieces' rectangles, or cell by cell, its edges were straight lines and steps)
 function Shade.Hide.Build(mapID, rects, un, grade)
 	local p = Place(mapID)
 	local files = p and ArtFiles(mapID)
 	if not files or #files == 0 then return false end
 	local f = CreateFrame("Frame", nil, Shade.Hide.root)
 	f:SetAllPoints(root)
-	if Shade.Hide.mode == "dim" then
-		-- (the shade on the zone's land alone, as a zone not found at all is shaded: the sea it paints left be)
-		local land = ZoneMask(f, p, ZONELAND)
-		for _, r in ipairs(rects) do
-			local tex = f:CreateTexture(nil, "ARTWORK")
-			Shade.Tint(tex)
-			Record(tex, p.left + r[1] * p.sx, p.top + r[2] * p.sy, (r[3] - r[1]) * p.sx, (r[4] - r[2]) * p.sy)
-			if land then tex:AddMaskTexture(land) end
-		end
-		return { frame = f, un = un, grade = grade }
-	end
-	local band, territory = ZoneMask(f, p, BAND), ZoneMask(f, p, TERRITORY)
-	local mask = territory or Feather(f, p, FEATHER)
-	local m = ns.MapGrade and ns.MapGrade[mapID]
-	local strength, desat = gradeNow[1], gradeNow[2]
+	local dim = Shade.Hide.mode == "dim"
+	-- (no zone mask, no colour-matched copy through its border band, as the base art has: a texture takes
+	-- three masks, the piece's shape and two holes; the shape keeps it on the piece's land)
+	local desat = gradeNow[2]
 	local tw, th = p.layer.tileWidth, p.layer.tileHeight
 	local cols = math.ceil(p.layer.layerWidth / tw)
-	for _, r in ipairs(rects) do
+	-- (each texture's box, normalized, for Shade.Hide.Cull: zoomed in, only those near the view are drawn)
+	local list = {}
+	local function Lay(tex, x, y, w, h)
+		Record(tex, x, y, w, h)
+		list[#list + 1] = { tex, x / W, y / H, (x + w) / W, (y + h) / H }
+	end
+	-- the blank art (or the shade) over r (art px), an unexplored piece's tile, through its shape and holes
+	local function Cover(r, shape, holes)
+		local function Masks(tex)
+			tex:AddMaskTexture(shape)
+			for _, h in ipairs(holes) do tex:AddMaskTexture(h) end
+		end
+		if dim then
+			local tex = f:CreateTexture(nil, "ARTWORK")
+			Shade.Tint(tex)
+			Lay(tex, p.left + r[1] * p.sx, p.top + r[2] * p.sy, (r[3] - r[1]) * p.sx, (r[4] - r[2]) * p.sy)
+			Masks(tex)
+			return
+		end
 		for j = math.floor(r[2] / th), math.ceil(r[4] / th) - 1 do
 			for k = math.floor(r[1] / tw), math.ceil(r[3] / tw) - 1 do
 				local file = files[j * cols + k + 1]
@@ -2587,23 +2634,148 @@ function Shade.Hide.Build(mapID, rects, un, grade)
 				local x0, y0 = math.max(r[1], k * tw), math.max(r[2], j * th)
 				local x1, y1 = math.min(r[3], (k + 1) * tw), math.min(r[4], (j + 1) * th)
 				if file and x1 > x0 and y1 > y0 then
-					for copy = 1, band and 2 or 1 do
-						local tex = f:CreateTexture(nil, "ARTWORK", nil, copy - 1)
-						tex:SetTexture(file, nil, nil, "TRILINEAR")
-						tex:SetTexCoord((x0 - k * tw) / tw, (x1 - k * tw) / tw, (y0 - j * th) / th, (y1 - j * th) / th)
-						Record(tex, p.left + x0 * p.sx, p.top + y0 * p.sy, (x1 - x0) * p.sx, (y1 - y0) * p.sy)
-						tex:AddMaskTexture(mask)
-						tex:SetDesaturation(desat)
-						if copy == 2 then
-							tex:AddMaskTexture(band)
-							if m then tex:SetVertexColor(1 + (m[1] - 1) * strength, 1 + (m[2] - 1) * strength, 1 + (m[3] - 1) * strength, 1) end
-						end
-					end
+					local tex = f:CreateTexture(nil, "ARTWORK")
+					tex:SetTexture(file, nil, nil, "TRILINEAR")
+					tex:SetTexCoord((x0 - k * tw) / tw, (x1 - k * tw) / tw, (y0 - j * th) / th, (y1 - j * th) / th)
+					Lay(tex, p.left + x0 * p.sx, p.top + y0 * p.sy, (x1 - x0) * p.sx, (y1 - y0) * p.sy)
+					Masks(tex)
+					tex:SetDesaturation(desat)
 				end
 			end
 		end
 	end
-	return { frame = f, un = un, grade = grade }
+	-- the explored pieces on this zone's art, every zone's (a zone's art runs onto its neighbours': Desolace's
+	-- unexplored pieces over Mulgore's north-west, explored), in this zone's art px, each with its hole
+	-- (made when first wanted)
+	local explored = {}
+	local zr, zb = p.left + p.layer.layerWidth * p.sx, p.top + p.layer.layerHeight * p.sy
+	for _, z in ipairs(ns.MapRevealBounds and overlayZones or NONE) do
+		local q = Place(z)
+		local art = q and C_Map.GetMapArtID(z)
+		for key, piece in pairs(art and pieces[z] or NONE) do
+			local boxes = not piece.unexplored and Shade.Hide.Bounds(art, key)
+			if boxes then
+				local w, h, x, y = strsplit(":", key)
+				w, h, x, y = tonumber(w), tonumber(h), tonumber(x), tonumber(y)
+				-- (where it paints: past that its hole is opaque, so a cover there needn't go through it)
+				local bx0, by0, bx1, by1
+				for _, c in ipairs(boxes) do
+					if c then
+						bx0, by0 = math.min(bx0 or c[1], c[1]), math.min(by0 or c[2], c[2])
+						bx1, by1 = math.max(bx1 or c[3], c[3]), math.max(by1 or c[4], c[4])
+					end
+				end
+				local l, t, r, b = q.left + x * q.sx, q.top + y * q.sy, q.left + (x + w) * q.sx, q.top + (y + h) * q.sy
+				if bx0 and l < zr and r > p.left and t < zb and b > p.top then
+					-- (the hole's texture: the piece in a power of two each way less a border of one opaque texel,
+					-- laid that texel past the piece, so clamped it's opaque all round)
+					local tx, ty = Pow2(math.ceil(w / 4)), Pow2(math.ceil(h / 4))
+					local dx, dy = (r - l) / (tx - 2), (b - t) / (ty - 2)
+					explored[#explored + 1] = {
+						(l + bx0 * q.sx - p.left) / p.sx, (t + by0 * q.sy - p.top) / p.sy,
+						(l + bx1 * q.sx - p.left) / p.sx, (t + by1 * q.sy - p.top) / p.sy,
+						file = TEX .. "MapRevealHole\\" .. art .. "\\" .. w .. "_" .. h .. "_" .. x .. "_" .. y,
+						rect = { l - dx, t - dy, r - l + 2 * dx, b - t + 2 * dy } }
+				end
+			end
+		end
+	end
+	local function Hole(e)
+		if not e.mask then
+			e.mask = f:CreateMaskTexture()
+			e.mask:SetTexture(e.file, "CLAMP", "CLAMP")
+			Record(e.mask, e.rect[1], e.rect[2], e.rect[3], e.rect[4])
+		end
+		return e.mask
+	end
+	-- the explored pieces over r (art px), the most of it first
+	local function Over(r)
+		local out = {}
+		for _, e in ipairs(explored) do
+			if e[1] < r[3] and e[3] > r[1] and e[2] < r[4] and e[4] > r[2] then
+				out[#out + 1] = { e, (math.min(r[3], e[3]) - math.max(r[1], e[1])) * (math.min(r[4], e[4]) - math.max(r[2], e[2])) }
+			end
+		end
+		table.sort(out, function(a, b) return a[2] > b[2] end)
+		return out
+	end
+	local function Holes(over)
+		local holes = {}
+		for i = 1, math.min(2, #over) do holes[i] = Hole(over[i][1]) end
+		return holes
+	end
+	-- r covered through the holes of the explored pieces over it: whole when two or fewer are (a texture
+	-- takes three masks); else cut on their edges, each cell through the two over the most of it (a hole is
+	-- opaque past its piece, so the cuts don't show)
+	local function Through(r, shape)
+		local over = Over(r)
+		if #over <= 2 then return Cover(r, shape, Holes(over)) end
+		local xs, ys = { r[1], r[3] }, { r[2], r[4] }
+		for _, o in ipairs(over) do
+			local e = o[1]
+			if e[1] > r[1] then xs[#xs + 1] = e[1] end
+			if e[3] < r[3] then xs[#xs + 1] = e[3] end
+			if e[2] > r[2] then ys[#ys + 1] = e[2] end
+			if e[4] < r[4] then ys[#ys + 1] = e[4] end
+		end
+		table.sort(xs)
+		table.sort(ys)
+		for j = 1, #ys - 1 do
+			for i = 1, #xs - 1 do
+				local c = { xs[i], ys[j], xs[i + 1], ys[j + 1] }
+				if c[3] > c[1] and c[4] > c[2] then Cover(c, shape, Holes(Over(c))) end
+			end
+		end
+	end
+	-- (each piece's tiles as PlaceTiles lays an overlay's: its edge tiles the next power of two; each covered
+	-- only where its art paints, its box in ns.MapRevealBounds: the rest of its square is transparent)
+	local art = C_Map.GetMapArtID(mapID) or 0
+	ForEachPiece(mapID, function(pfiles, x, y, w, h, _, piece)
+		if not piece.unexplored then return end
+		local boxes = tw == 256 and th == 256 and Shade.Hide.Bounds(art, piece.key)
+		local pc, pr = math.ceil(w / tw), math.ceil(h / th)
+		for j = 1, pr do
+			local ph = (j < pr) and th or (h - (pr - 1) * th)
+			local fh = (j < pr) and th or Pow2(ph)
+			for k = 1, pc do
+				local pf = pfiles[(j - 1) * pc + k]
+				pf = tonumber(pf) or pf
+				local pw = (k < pc) and tw or (w - (pc - 1) * tw)
+				local fw = (k < pc) and tw or Pow2(pw)
+				local box = boxes and boxes[(j - 1) * pc + k]
+				if pf and pw > 0 and ph > 0 and box ~= false and not (ns.MapBlank and ns.MapBlank[pf]) then
+					local x0, y0 = x + (k - 1) * tw, y + (j - 1) * th
+					local shape = f:CreateMaskTexture()
+					-- (clamped to its edge, not to black: filtered against black, each tile's edge was a seam, a thin
+					-- line of the minimap showing through where two of a piece's tiles meet)
+					shape:SetTexture(pf, "CLAMP", "CLAMP")
+					Record(shape, p.left + x0 * p.sx, p.top + y0 * p.sy, fw * p.sx, fh * p.sy)
+					Through(box and { x + box[1], y + box[2], x + box[3], y + box[4] } or { x0, y0, x0 + pw, y0 + ph }, shape)
+				end
+			end
+		end
+	end)
+	return { frame = f, un = un, grade = grade, list = list }
+end
+
+-- a zone's hide textures near the view (S.Cull's box) shown, the rest hidden and let go of their anchors,
+-- as ShowZone does the art's: zoomed in, every one of a zone's was drawn
+function Shade.Hide.Cull(z)
+	local box = cullBox
+	for _, e in ipairs(z.list or NONE) do
+		local show = not box or (e[4] > box[1] and e[2] < box[3] and e[5] > box[2] and e[3] < box[4])
+		if e.shown ~= show then
+			e.shown = show
+			local tex = e[1]
+			if show then
+				if not tex:GetPoint() then PlaceRecord(tex.omRec) end
+				tex:Show()
+			else
+				tex:Hide()
+				tex:ClearAllPoints()
+			end
+		end
+	end
 end
 
 -- shown while unexplored land is hidden or darkened (darkened: a zone you've been to, one you haven't
@@ -2631,7 +2803,10 @@ function Shade.Hide.Show(mapID)
 			z = rects and #rects > 0 and Shade.Hide.Build(mapID, rects, un, grade) or { un = un, grade = grade }
 			Shade.Hide.zones[mapID] = z
 		end
-		if z.frame then z.frame:Show() end
+		if z.frame then
+			Shade.Hide.Cull(z)
+			z.frame:Show()
+		end
 	elseif z and z.frame then
 		z.frame:Hide()
 	end
@@ -2740,6 +2915,7 @@ function S.ApplyGrade(strength, desat, unexplored)
 	local dim = unexplored == "dim" and ns.MapGrade ~= nil   -- (the shades need its zones' land masks)
 	Shade.on = dim
 	Shade.Hide.mode = (unexplored == "hide" or dim) and unexplored or false
+	S.hiddenStamp = (S.hiddenStamp or 0) + 1   -- (what S.HiddenAt says may have changed: Close.lua asks again)
 	for _, g in ipairs(graded) do GradeEntry(g, desat) end
 	for _, g in ipairs(twins) do
 		local tex, m = g[1], grade[g[2]]
