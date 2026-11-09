@@ -77,15 +77,18 @@ def rect(mapid):
     return (l - um0 * w_, l - um0 * w_ + w_, t - um1 * h_, t - um1 * h_ + h_)
 
 # OPENMAP_WOW: the game's folder (World of Warcraft); its own files are read there first
-# (tools/casc), wago.tools only for what the install doesn't have
+# (tools/casc), wago.tools only for what the install doesn't have. OPENMAP_LOCALE (with OPENMAP_WOW):
+# the files as that locale's client reads them, the names lettered on the art in its language, and
+# from the install alone (wago.tools serves enUS); --bake-zones then bakes for that locale's clients
 WOW = os.environ.get("OPENMAP_WOW")
+LOCALE = os.environ.get("OPENMAP_LOCALE", "enUS")
 _casc = []
 def local(fid, p):
     if not WOW: return False
     if not _casc:
         sys.path.insert(0, os.path.join(REPO, "tools", "casc"))
         import casc
-        _casc.append(casc.Casc(WOW, os.environ.get("OPENMAP_PRODUCT", clients.PRODUCT)))
+        _casc.append(casc.Casc(WOW, os.environ.get("OPENMAP_PRODUCT", clients.PRODUCT), LOCALE))
     try:
         data = _casc[0].read(fid)
     except Exception:
@@ -96,6 +99,7 @@ def local(fid, p):
 def fetch(fid):
     p = os.path.join(cache, "%d.blp" % fid)
     if (not os.path.exists(p) or os.path.getsize(p) == 0) and not local(fid, p):
+        if LOCALE != "enUS": raise SystemExit("file %d: not in the install for %s" % (fid, LOCALE))
         url = "https://wago.tools/api/casc/%d?download&version=%s" % (fid, BUILD)
         req = urllib.request.Request(url, headers={"User-Agent": "openmap-tools/1"})
         for attempt in range(3):
@@ -1550,11 +1554,14 @@ ZONE_DESAT, ZONE_MATCH = 0.1, 1 # Stitch.lua's defaults (desaturate, colorMatch)
 BAKE_DESAT = 0                  # ... and the desaturation the zones are baked at: none, so the tiles serve any
                                 #  setting (Stitch.lua desaturates them the rest of the way, Baked.desat)
 
-def bake_zones():
+def bake_zones(blank=False):
     """MapZones/<i>_<j>.blp and Data/ZoneArt.lua: every zone's art as the stitched map draws it at
     full detail, on the world, in tiles (Stitch.lua's zone layers, in its order and with its masks:
     the gaps' finer maps, each zone's base art and its colour-match copy, the overlays, theirs, and
-    the interiors), so the map can draw a few dozen tiles where it drew every zone's hundreds"""
+    the interiors), so the map can draw a few dozen tiles where it drew every zone's hundreds.
+    blank (--bake-zones-blank): MapZonesBlank/ and Data/ZoneArtBlank.lua, the layers under the overlays
+    alone (the zones' blank art), for unexplored areas hidden: Stitch.lua draws the explored pieces
+    live over them"""
     sys.path.insert(0, os.path.join(REPO, "tools", "map-textures"))
     import blp
     W, H = 1002.0, 668.0
@@ -1573,16 +1580,17 @@ def bake_zones():
         if g and band(m) is not None:
             layers.append((m["rect"], lambda m=m: base(m), lambda m=m: (terr(m) if terr(m) is not None else M_FEATHER) * band(m), g, BAKE_DESAT))
     def edge_of(m): return over_edge(m) if grade.get(m["id"]) else M_THIN   # (Stitch.lua: MapEdge for graded zones)
-    for m in live:                                       # (overlayRoot: every zone's overlays, then their copies)
+    for m in ([] if blank else live):                    # (overlayRoot: every zone's overlays, then their copies)
         layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m), None, BAKE_DESAT))
-    for m in live:
+    for m in ([] if blank else live):
         g = grade.get(m["id"])
         if g and band(m) is not None:
             layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m) * band(m), g, BAKE_DESAT))
-    for m in live:                                       # (coreRoot: the interiors, graded zones only)
+    for m in ([] if blank else live):                    # (coreRoot: the interiors, graded zones only)
         if grade.get(m["id"]) and os.path.exists(os.path.join(TEXDIR, "MapCore", "%d.tga" % m["id"])):
             layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m) * core(m), None, BAKE_DESAT))
-    out_dir = os.path.join(TEXDIR, "MapZones")
+    folder, data, name = ("MapZonesBlank", "ZoneArtBlank", "MapZoneArtBlank") if blank else ("MapZones", "ZoneArt", "MapZoneArt")
+    out_dir = os.path.join(TEXDIR, folder)
     os.makedirs(out_dir, exist_ok=True)
     for f in os.listdir(out_dir):
         if f.endswith(".blp"): os.remove(os.path.join(out_dir, f))
@@ -1626,14 +1634,21 @@ def bake_zones():
             blp.write(os.path.join(out_dir, "%d_%d.blp" % (i, j)), np.round(rgba * 255).astype(np.uint8))
             made.append(i * 256 + j)
             print("zone tile", i, j, flush=True)
-    with open(os.path.join(WM, "ZoneArt.lua"), "w", encoding="utf-8", newline="\n") as f:
-        f.write("-- The zones' art baked into world tiles (Media/Textures/MapZones/<i>_<j>.blp): every zone's layers as\n"
-                "-- Stitch.lua draws them at full detail, at the settings below. Stitch.lua draws these in their place.\n"
-                "-- Generated by tools/map-preview/render.py --bake-zones (build %s); regenerate rather than edit.\n\n" % BUILD)
+    with open(os.path.join(WM, data + ".lua"), "w", encoding="utf-8", newline="\n") as f:
+        if blank:
+            f.write("-- The zones' blank art baked into world tiles (Media/Textures/MapZonesBlank/<i>_<j>.blp): the layers\n"
+                    "-- under the overlays, as Stitch.lua draws them at full detail, at the settings below. Stitch.lua draws\n"
+                    "-- these in their place with unexplored areas hidden, the explored pieces live over them.\n"
+                    "-- Generated by tools/map-preview/render.py --bake-zones-blank (build %s); regenerate rather than edit.\n\n" % BUILD)
+        else:
+            f.write("-- The zones' art baked into world tiles (Media/Textures/MapZones/<i>_<j>.blp): every zone's layers as\n"
+                    "-- Stitch.lua draws them at full detail, at the settings below. Stitch.lua draws these in their place.\n"
+                    "-- Generated by tools/map-preview/render.py --bake-zones (build %s); regenerate rather than edit.\n\n" % BUILD)
         f.write("local _, ns = ...\n\n")
-        f.write("ns.MapZoneArt = {\n")
+        f.write("ns.%s = {\n" % name)
         f.write("\tpx = %d, size = %d, step = %d,   -- px per world unit; a tile's px, and those of it the world (the rest: its neighbours' edge)\n" % (ZONE_PX, ZONE_TILE, ZONE_STEP))
         f.write("\tdesaturate = %g, colorMatch = %g,   -- the settings it's baked at (Stitch.lua desaturates it further)\n" % (BAKE_DESAT, ZONE_MATCH))
+        f.write("\tlocale = \"%s\",   -- the client language whose files it's baked from (the names lettered on the art)\n" % LOCALE)
         f.write("\ttiles = {   -- i * 256 + j: column i, row j\n")
         for k in range(0, len(made), 16):
             f.write("\t\t" + ", ".join(str(v_) for v_ in made[k:k + 16]) + ",\n")
@@ -1643,6 +1658,9 @@ def bake_zones():
 views = sys.argv[4:] or ["world=0.5,0.5,1"]
 if views and views[0] == "--bake-zones":
     bake_zones()
+    views = views[1:]
+if views and views[0] == "--bake-zones-blank":
+    bake_zones(blank=True)
     views = views[1:]
 if views and views[0] == "--bake-land":
     # MapLand/<continent>.tga: where a continent's art is land, for the land fill and grain

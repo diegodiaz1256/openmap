@@ -7,6 +7,7 @@
 #   product: the install's product in .build.info (WoW Forever's is wow_classic_beta)
 #
 # From the tools: Casc(folder, product).read(fid) -> bytes (KeyError: not in this install).
+# Casc(folder, product, "esES"): a localized file as that locale's client reads it (enUS by default).
 # The install is whatever build the launcher last updated it to, which can be newer than
 # the build the tools' tables name.
 import bisect, os, struct, sys, zlib
@@ -51,8 +52,9 @@ def blte(data):
 
 
 class Casc:
-    def __init__(self, folder, product="wow_classic_beta"):
+    def __init__(self, folder, product="wow_classic_beta", locale="enUS"):
         self.data = os.path.join(folder, "Data")
+        self.locale = LOCALES[locale]
         cfg = self._config(self._build_key(folder, product))
         self._indices()
         self._encoding(blte(self._read_ekey(bytes.fromhex(cfg["encoding"].split()[1]))))
@@ -144,7 +146,7 @@ class Casc:
     def read_ckey(self, ckey):
         return blte(self._read_ekey(self.ekey_of(ckey)))
 
-    # --- file ID -> content key: the root table (enUS or every locale)
+    # --- file ID -> content key: the root table (the locale's entries, or every locale's)
     def _root(self, d):
         fids, keys = [], []
         self._blocks = []                       # every block's IDs and locale mask (locales())
@@ -177,7 +179,7 @@ class Casc:
                 ck = rec[:, :16]
                 pos += 24 * num
             self._blocks.append((ids, locale))
-            if locale & LOCALE_ENUS:
+            if locale & self.locale:
                 fids.append(ids)
                 keys.append(ck)
         fid = np.concatenate(fids)

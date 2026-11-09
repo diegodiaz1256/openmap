@@ -35,6 +35,7 @@ shrunk from `art/icon/openmap.png` by `tools/icon/build.py`.
 | `MapGapLand/` (Gilneas), `MapCoastArt/` | masks for Blizzard's own maps that the client has but Forever's tables don't use (Gilneas' base map; the classic base maps of 16 zones, which paint the land round them): where they're drawn, at their own resolution, on land no zone covers | `tools/map-preview/gapfill.py` |
 | `MapMiniLOD/` | the game's minimap tiles, shrunk and laid side by side (16 and 64 px a tile), tinted as the close-up minimap is | `tools/map-preview/minimaplod.py` |
 | `MapZones/` | every zone map composited onto the world as the map draws it at full detail (each zone's base art and overlays through its masks, the colour-match copies, the interiors, the gaps' finer maps), in 512-px tiles, BLP with DXT5 compression | `tools/map-preview/render.py --bake-zones` |
+| `MapZonesBlank/` | the same, the layers under the overlays alone (each zone's base art through its masks, its colour-match copy, the gaps' finer maps): the zones' blank art, drawn with unexplored areas hidden | `tools/map-preview/render.py --bake-zones-blank` |
 | `MapArt/` | world and continent map tiles with their sea and continent names painted out (by hand) | `tools/map-art/import.py` |
 | `MapTile/` | the game's own cave and dungeon map tiles, copied as they are (`<file ID>.blp`): WoW Forever doesn't list them for every language, so some clients (esMX, ruRU, itIT) drew them green. RADD95's OpenMap TextureFix (MIT) found this and fixed it first | `tools/map-tiles/build.py` |
 

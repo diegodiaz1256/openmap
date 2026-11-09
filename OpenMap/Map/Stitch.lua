@@ -157,22 +157,26 @@ end
 -- little before it (WARM, of FADE's start: their files load meanwhile) and the tiles fade off them; and
 -- while their files are still coming in (busy) the tiles stay (holding), or the zones' plain parchment,
 -- the first of their files to arrive, showed for a moment between the two
+-- With unexplored areas hidden, the blank tiles (ns.MapZoneArtBlank, --bake-zones-blank: the layers under
+-- the overlays) stand in for tilesRoot alone, and the explored pieces stay live over them (overlayRoot,
+-- coreRoot), so only those are drawn piece by piece. sets: full and blank, each its frame and tiles
 -- desat: the tiles' own desaturation, the rest of the way from what they're baked at to the setting
 -- (desaturating twice is desaturating once by 1 - (1 - a)(1 - b)), so they serve any Take colour out
--- english: the tiles are baked from the English client's files, names lettered on the art and all; any
--- other language draws the zones live, from the client's own art in its language
+-- locale: the client's language; the tiles are baked from one language's files (ns.MapZoneArt.locale,
+-- names lettered on the art and all), and any other draws the zones live, from its own art
 local Baked = { FADE = { 1.2, 1.6 }, WARM = 0.85, tiles = {}, use = false, live = 1, warm = false, busy = false, holding = false,
-	path = TEX .. "MapZones\\", desat = 0, english = not GetLocale or GetLocale():sub(1, 2) == "en" }
+	path = TEX .. "MapZones\\", desat = 0, locale = GetLocale and GetLocale() or "enUS" }
 
 -- The live zone layers' regions (tilesRoot, overlayRoot, coreRoot: thousands of textures and their
 -- masks) are anchored only while they can show. Every region is placed on root, and each frame of a
 -- pan or zoom the game lays out again everything anchored to it, hidden or not: thousands of hidden
 -- textures cost as much as the art on screen. masks: mapID -> its masks' records in those layers;
 -- placed: mapID -> whether they're anchored now; seen: whether the zone detail shows at all
-local Live = { masks = {}, placed = {}, seen = false }
+-- on: each live layer's root -> whether it shows (overlayRoot and coreRoot can over the blank tiles, Baked)
+local Live = { masks = {}, placed = {}, seen = false, on = {} }
 function Live.Under(f)
 	while f do
-		if f == tilesRoot or f == overlayRoot or f == coreRoot then return true end
+		if f == tilesRoot or f == overlayRoot or f == coreRoot then return f end
 		f = f:GetParent()
 	end
 	return false
@@ -208,29 +212,33 @@ local function ApplyDetail()
 	local key = live + (warm and 2 or 0) + (Baked.holding and 4 or 0)
 	if d == appliedDetail and key == Baked.applied then return end
 	appliedDetail, Baked.applied = d, key
-	-- (the live layers at full under the tiles, from just before the handover: Baked, above)
+	-- (the live layers at full under the tiles, from just before the handover: Baked, above; over the blank
+	-- tiles the overlays always)
 	local on, seen = d > 0.001 and (live > 0 or warm), d > 0.001
-	local dl = on and d or 0
-	if on ~= detailLive or seen ~= Live.seen then   -- (zones' files load once their detail first shows; the live
-		detailLive, Live.seen = on, seen             --  layers' regions are anchored while they show, ShowZone)
+	local over = on or seen and Baked.blank or false
+	local dl, ol = on and d or 0, over and d or 0
+	if on ~= detailLive or seen ~= Live.seen or over ~= Live.on[overlayRoot] then   -- (zones' files load once their
+		detailLive, Live.seen = on, seen             --  detail first shows; the live layers' regions are anchored
+		Live.on[tilesRoot], Live.on[overlayRoot], Live.on[coreRoot] = on, over, over   --  while they show, ShowZone)
 		for mapID in pairs(zoneTex) do
 			if inView[mapID] == true then ShowZone(mapID) end
 		end
 	end
 	tilesRoot:SetShown(on)
-	overlayRoot:SetShown(on)
+	overlayRoot:SetShown(over)
 	tilesRoot:SetAlpha(Live.zones and (on and 1 or 0) or dl)   -- (each zone's own, above, where they come in by continent)
 	for _, tex in ipairs(gapFill) do tex:SetAlpha(d) end
-	overlayRoot:SetAlpha(Live.zones and (on and 1 or 0) or dl)
+	overlayRoot:SetAlpha(Live.zones and (over and 1 or 0) or ol)
 	-- the interiors (a second copy of every zone's overlays) only with the zones proper:
 	-- under the faint hint from further out they'd hardly show, over both continents at once
-	Fade(coreRoot, on and math.max(0, (d - DETAIL_HINT[3]) / (1 - DETAIL_HINT[3])) or 0)
+	Fade(coreRoot, over and math.max(0, (d - DETAIL_HINT[3]) / (1 - DETAIL_HINT[3])) or 0)
 	if blurRoot then Fade(blurRoot, d * softNow) end
 	if Baked.frame then
 		-- (the live layers stack: a zone's base art and its overlays, each at d, cover 1 - (1 - d)^2 of
-		-- what's under them; the tiles are all of them in one, so they're drawn that strong)
+		-- what's under them; the tiles are all of them in one, so they're drawn that strong. The blank
+		-- ones stand for the base art alone)
 		local gone = Baked.holding and 0 or live
-		Fade(Baked.frame, math.floor((1 - (1 - d) ^ 2) * (1 - gone) * 100 + 0.5) / 100)
+		Fade(Baked.frame, math.floor((Baked.blank and d or 1 - (1 - d) ^ 2) * (1 - gone) * 100 + 0.5) / 100)
 		Baked.Cull()
 	end
 end
@@ -1856,7 +1864,7 @@ function S.SetZoom(zoom, scale)
 	if S.greyRoot and S.greyRoot:IsShown() ~= (detailNow < 0.98) then S.greyRoot:SetShown(detailNow < 0.98) end
 	if Baked.frame then                         -- (screen px per baked px: the live layers take over past them)
 		local _, ph = GetPhysicalScreenSize()
-		local r = root:GetEffectiveScale() * (ph or 768) / 768 / ns.MapZoneArt.px
+		local r = root:GetEffectiveScale() * (ph or 768) / 768 / Baked.art.px
 		local t = math.max(0, math.min(1, (r - Baked.FADE[1]) / (Baked.FADE[2] - Baked.FADE[1])))
 		Baked.live = math.floor(t * t * (3 - 2 * t) * 50 + 0.5) / 50
 		Baked.warm = r >= Baked.FADE[1] * Baked.WARM
@@ -2853,7 +2861,7 @@ ShowZone = function(mapID)
 	for _, e in ipairs(zoneTex[mapID] or NONE) do
 		local tex = e[1]
 		local near = here and (not box or not e.u0 or (e.u1 > box[1] and e.u0 < box[3] and e.v1 > box[2] and e.v0 < box[4]))
-		local drawn = (not e.layer or detailLive) and zoneOn   -- (the live layers: only while they show; the cities: always)
+		local drawn = (not e.layer or Live.on[e.layer]) and zoneOn   -- (the live layers: only while they show; the cities: always)
 		local un = e[3] and e[3].unexplored
 		-- (a base tile under its zone's pieces only when the unexplored ones are hidden: ns.MapUnder)
 		drawn = drawn and not (e.under and not hide)
@@ -2875,7 +2883,7 @@ ShowZone = function(mapID)
 			end
 		end
 	end
-	local want = (here and detailLive and zoneOn) and true or false
+	local want = (here and Live.on[overlayRoot] and zoneOn) and true or false
 	if Live.placed[mapID] ~= want then
 		Live.placed[mapID] = want
 		for _, rec in ipairs(Live.masks[mapID] or NONE) do
@@ -2941,11 +2949,16 @@ function S.ApplyGrade(strength, desat, unexplored)
 		cities.Dim()
 		cities.Banners()
 	end
-	-- the baked art only at the settings it was baked at (unexplored areas hidden: live, piece by piece),
-	-- and on an English client (Baked.english)
-	local art = ns.MapZoneArt
-	Baked.use = (art and Baked.frame and strength == art.colorMatch and desat >= art.desaturate - 0.001
-		and unexplored ~= "hide" and not Baked.noFills and Baked.english) and true or false
+	-- the baked art only at the settings it was baked at (unexplored areas hidden: the blank tiles, the
+	-- explored pieces live over them), and on a client of the language they're baked from (Baked.locale;
+	-- enUS's serve enGB too)
+	local set = Baked.sets and Baked.sets[unexplored == "hide" and "blank" or "full"]
+	if set and set ~= Baked.set then Baked.Pick(set) end
+	local art = set and set.art
+	Baked.use = (art and strength == art.colorMatch and desat >= art.desaturate - 0.001
+		and not Baked.noFills and Baked.Speaks(art)) and true or false
+	Baked.blank = Baked.use and unexplored == "hide"
+	if Baked.frame and not Baked.use then Fade(Baked.frame, 0) end
 	local bd = art and math.max(0, (desat - art.desaturate) / (1 - art.desaturate)) or 0
 	if Baked.use and math.abs(bd - Baked.desat) > 0.001 then
 		Baked.desat = bd
@@ -3054,21 +3067,47 @@ end
 -- the baked tiles (Baked, above): each placed the first time it's near the view (its file set then),
 -- and shown near the view (S.Cull's box) while the baked art shows
 function Baked.Build()
-	local art = ns.MapZoneArt
-	if not art or not root then return end
-	local f = CreateFrame("Frame", nil, root)
-	f:SetAllPoints(root)
-	f:SetFrameLevel(coreRoot:GetFrameLevel())   -- (in place of the live layers, under the blur and the cities)
-	f:Hide()
-	Baked.frame = f
-	local size = art.step / art.px            -- world units a tile covers
-	Baked.inset = (art.size - art.step) / 2 / art.size
-	for _, key in ipairs(art.tiles) do
-		local i, j = math.floor(key / 256), key % 256
-		local x, y = i * size, j * size
-		Baked.tiles[#Baked.tiles + 1] = { name = i .. "_" .. j, x = x, y = y, size = size,
-			u0 = x / W, v0 = y / H, u1 = (x + size) / W, v1 = (y + size) / H }
+	if not root or not ns.MapZoneArt then return end
+	Baked.sets = {}
+	-- (the full tiles in place of all the live layers, under the blur and the cities; the blank ones in
+	-- place of tilesRoot, under the explored pieces)
+	local defs = { { "full", ns.MapZoneArt, "MapZones\\", coreRoot }, { "blank", ns.MapZoneArtBlank, "MapZonesBlank\\", tilesRoot } }
+	for _, def in ipairs(defs) do
+		local art = def[2]
+		if art then
+			local f = CreateFrame("Frame", nil, root)
+			f:SetAllPoints(root)
+			f:SetFrameLevel(def[4]:GetFrameLevel())
+			f:Hide()
+			local set = { frame = f, art = art, path = TEX .. def[3], tiles = {}, desat = 0,
+				inset = (art.size - art.step) / 2 / art.size }
+			local size = art.step / art.px            -- world units a tile covers
+			for _, key in ipairs(art.tiles) do
+				local i, j = math.floor(key / 256), key % 256
+				local x, y = i * size, j * size
+				set.tiles[#set.tiles + 1] = { name = i .. "_" .. j, x = x, y = y, size = size,
+					u0 = x / W, v0 = y / H, u1 = (x + size) / W, v1 = (y + size) / H }
+			end
+			Baked.sets[def[1]] = set
+		end
 	end
+	Baked.Pick(Baked.sets.full)
+end
+
+function Baked.Speaks(art)
+	local l = art.locale or "enUS"
+	return Baked.locale == l or (l == "enUS" and Baked.locale == "enGB")
+end
+
+-- the set drawn (Baked.Build's): the other's frame put away, its tiles' desaturation kept with it
+function Baked.Pick(set)
+	if Baked.set then
+		Baked.set.desat = Baked.desat
+		Fade(Baked.frame, 0)
+	end
+	Baked.set, Baked.frame, Baked.tiles, Baked.path, Baked.inset, Baked.art = set, set.frame, set.tiles, set.path, set.inset, set.art
+	Baked.desat = set.desat
+	Baked.applied = nil
 end
 
 function Baked.Cull()
