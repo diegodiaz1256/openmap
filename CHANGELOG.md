@@ -1,5 +1,30 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Improved
+
+- **Hide unexplored areas is true to the game's map**: an unexplored area is hidden in its own
+  shape, soft-edged, wherever no explored area paints over it, as Blizzard's map shows it. Before,
+  its rectangle was cut out round explored land, which left straight lines, steps and slivers of
+  blank parchment, hid a neighbour's explored land (Desolace's over Mulgore), and showed land you
+  hadn't found. Land the game doesn't count as explored stays hidden even where you walked it.
+
+- **Hide unexplored areas costs far less frame rate**: the zones' blank art comes from baked tiles
+  (`MapZonesBlank`, about 75 MB), with only your explored areas drawn over them; the hidden
+  areas are drawn only near the view, and no minimap under land hidden all over. The baked tiles
+  are also used on a client in another language when tiles baked for it are installed
+  (`render.py --bake-zones` with `OPENMAP_LOCALE`).
+
+- **Undercity's map comes in early only once you're in it**, not as you walk up to it.
+
+### New
+
+- **Hide icons while moving the map** (menu, On the map): OpenMap's icons and other addons'
+  (Questie's ...) rest while you drag or zoom the map and come back as it stops; your waypoint and
+  party stay. Off by default; for slower computers, where every icon on screen costs frame rate on
+  each frame of a pan.
+
 ## v0.8.2 (2026-11-08)
 
 ### Improved

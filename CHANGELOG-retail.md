@@ -1,5 +1,14 @@
 # OpenMap changelog
 
+## Unreleased
+
+### New
+
+- **Hide icons while moving the map** (menu, On the map): OpenMap's icons and other addons'
+  (Questie's ...) rest while you drag or zoom the map and come back as it stops; your waypoint and
+  party stay. Off by default; for slower computers, where every icon on screen costs frame rate on
+  each frame of a pan.
+
 ## v0.8.2 (2026-11-08)
 
 ### Improved
